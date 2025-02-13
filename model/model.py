@@ -12,7 +12,7 @@ from torch import nn
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
-
+# 均方根归一化
 class RMSNorm(torch.nn.Module):
     def __init__(self, dim: int, eps: float):
         super().__init__()
@@ -58,7 +58,7 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
         .reshape(bs, slen, n_kv_heads * n_rep, head_dim)
     )
 
-
+# 多头注意力机制
 class Attention(nn.Module):
     def __init__(self, args: LMConfig):
         super().__init__()
@@ -256,7 +256,7 @@ class MOEFeedForward(nn.Module):
 
         return expert_cache
 
-
+# 类似于Transformer编码器或解码器层的结构
 class MiniMindBlock(nn.Module):
     def __init__(self, layer_id: int, config: LMConfig):
         super().__init__()
@@ -304,9 +304,12 @@ class MiniMindLM(PreTrainedModel):
                 past_key_values: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None,
                 use_cache: bool = False,
                 **args):
+        # 如果past_key_values未提供，则将其初始化为一个长度等于模型层数（self.layers）的None列表
         past_key_values = past_key_values or [None] * len(self.layers)
         start_pos = args.get('start_pos', 0)
+        # 输入嵌入：通过词嵌入层（self.tok_embeddings）处理input_ids，然后通过dropout层（self.dropout）减少过拟合
         h = self.dropout(self.tok_embeddings(input_ids))
+        # 位置编码：根据start_pos和input_ids的长度，从位置编码矩阵（self.pos_cis）中选择相应的位置编码。
         pos_cis = self.pos_cis[start_pos:start_pos + input_ids.size(1)]
         past_kvs = []
         for l, layer in enumerate(self.layers):
